@@ -4,11 +4,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 
-class SimpleStack {
+class Stack {
     private String[] data;
     private int top;
 
-    public SimpleStack() {
+    public Stack() {
         data = new String[10];
         top = -1;
     }
@@ -76,8 +76,8 @@ class CircularQueue {
 
 public class TextEditor {
     private String text = "";
-    private SimpleStack undoStack = new SimpleStack();
-    private SimpleStack redoStack = new SimpleStack();
+    private Stack undoStack = new Stack();
+    private Stack redoStack = new Stack();
     private CircularQueue autoSaveQueue = new CircularQueue(10);
     private boolean running = true;
     private static final String AUTO_SAVE_FILE = "autosave_recovery.txt";
@@ -136,7 +136,7 @@ public class TextEditor {
     public void type(String newText) {
         if (!newText.isEmpty()) {
             undoStack.push(text);
-            redoStack = new SimpleStack();
+            redoStack = new Stack();
             text += " " + newText;
             text = text.trim();
 
@@ -148,7 +148,7 @@ public class TextEditor {
         if (text.length() == 0 || n <= 0)
             return;
         undoStack.push(text);
-        redoStack = new SimpleStack();
+        redoStack = new Stack();
         n = Math.min(n, text.length());
         text = text.substring(0, text.length() - n);
 
@@ -194,7 +194,7 @@ public class TextEditor {
         TextEditor editor = new TextEditor();
         Scanner scanner = new Scanner(System.in);
 
-        System.out.println("Simple Text Editor");
+        System.out.println("Text Editor");
         System.out.println("Commands: add <text>, del <num>, undo, redo, save <file>, show, exit");
 
         while (true) {
