@@ -52,8 +52,8 @@ public class TextEditor {
                 for (int i = lines.length - 1; i >= 0; i--) {
                     if (!lines[i].isEmpty() && !lines[i].startsWith("---") && 
                         !lines[i].contains("Auto-Save")) {
-                        text = lines[i].trim();
-                        lastSavedText = text + " ";
+                        text = lines[i];
+                        lastSavedText = text;
                         break;
                     }
                 }
@@ -65,12 +65,10 @@ public class TextEditor {
         Thread t = new Thread(() -> {
             while (running) {
                 try {
-                    Thread.sleep(10000); // ۱۰ ثانیه
-                    // فقط اگر متن تغییر کرده ذخیره کن
+                    Thread.sleep(10000);
                     if (!text.equals(lastSavedText) && !text.isEmpty()) {
                         saveToFile();
                         lastSavedText = text;
-                        // System.out.println("\n(Auto-saved)");
                     }
                 } catch (InterruptedException e) {}
             }
@@ -84,7 +82,7 @@ public class TextEditor {
             writer.println("---");
             writer.println("Auto-Save: " + LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-            writer.println(text.trim());
+            writer.println(text);
         } catch (IOException e) {}
     }
     
@@ -92,7 +90,8 @@ public class TextEditor {
         if (!newText.isEmpty()) {
             undoStack.push(text);
             redoStack = new SimpleStack();
-            text += newText + " ";
+            text += " " + newText;
+            text = text.trim();
         }
     }
     
@@ -101,8 +100,7 @@ public class TextEditor {
         undoStack.push(text);
         redoStack = new SimpleStack();
         n = Math.min(n, text.length());
-        text = text.substring(0, text.length() - n).trim();
-        if (!text.isEmpty()) text += " ";
+        text = text.substring(0, text.length() - n);
     }
     
     public void undo() {
@@ -119,7 +117,7 @@ public class TextEditor {
     
     public void save(String filename) {
         try (PrintWriter writer = new PrintWriter(filename)) {
-            writer.print(text.trim());
+            writer.print(text);
             lastSavedText = text;
             System.out.println("Saved to: " + filename);
         } catch (IOException e) {
