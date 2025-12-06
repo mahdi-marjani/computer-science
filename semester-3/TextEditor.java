@@ -49,14 +49,13 @@ public class TextEditor {
             if (Files.exists(Paths.get(AUTO_SAVE_FILE))) {
                 String content = new String(Files.readAllBytes(Paths.get(AUTO_SAVE_FILE)));
                 String[] lines = content.split("\n");
-                for (int i = lines.length - 1; i >= 0; i--) {
-                    if (!lines[i].isEmpty() && !lines[i].startsWith("---") && 
-                        !lines[i].contains("Auto-Save")) {
-                        text = lines[i];
-                        lastSavedText = text;
-                        break;
-                    }
+                if (lines[lines.length - 1].startsWith("--- Auto-Save:")) {
+                    text = "";
                 }
+                else {
+                    text = lines[lines.length - 1];
+                }
+                lastSavedText = text;
             }
         } catch (IOException e) {}
     }
@@ -66,7 +65,7 @@ public class TextEditor {
             while (running) {
                 try {
                     Thread.sleep(10000);
-                    if (!text.equals(lastSavedText) && !text.isEmpty()) {
+                    if (!text.equals(lastSavedText)) {
                         saveToFile();
                         lastSavedText = text;
                     }
@@ -79,9 +78,12 @@ public class TextEditor {
     
     private void saveToFile() {
         try (PrintWriter writer = new PrintWriter(new FileWriter(AUTO_SAVE_FILE, true))) {
-            writer.println("---");
-            writer.println("Auto-Save: " + LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+            writer.println(
+                "--- " +
+                "Auto-Save: " + 
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")) +
+                " ---"
+            );
             writer.println(text);
         } catch (IOException e) {}
     }
