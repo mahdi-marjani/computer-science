@@ -7,12 +7,12 @@ import java.util.Scanner;
 class SimpleStack {
     private String[] data;
     private int top;
-    
+
     public SimpleStack() {
         data = new String[10];
         top = -1;
     }
-    
+
     public void push(String text) {
         if (top == data.length - 1) {
             String[] newData = new String[data.length * 2];
@@ -21,11 +21,11 @@ class SimpleStack {
         }
         data[++top] = text;
     }
-    
+
     public String pop() {
         return isEmpty() ? null : data[top--];
     }
-    
+
     public boolean isEmpty() {
         return top == -1;
     }
@@ -38,12 +38,12 @@ public class TextEditor {
     private String lastSavedText = "";
     private boolean running = true;
     private static final String AUTO_SAVE_FILE = "autosave.txt";
-    
+
     public TextEditor() {
         loadAutoSave();
         startAutoSaveThread();
     }
-    
+
     private void loadAutoSave() {
         try {
             if (Files.exists(Paths.get(AUTO_SAVE_FILE))) {
@@ -51,15 +51,15 @@ public class TextEditor {
                 String[] lines = content.split("\n");
                 if (lines[lines.length - 1].startsWith("--- Auto-Save:")) {
                     text = "";
-                }
-                else {
+                } else {
                     text = lines[lines.length - 1];
                 }
                 lastSavedText = text;
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        }
     }
-    
+
     private void startAutoSaveThread() {
         Thread t = new Thread(() -> {
             while (running) {
@@ -69,25 +69,26 @@ public class TextEditor {
                         saveToFile();
                         lastSavedText = text;
                     }
-                } catch (InterruptedException e) {}
+                } catch (InterruptedException e) {
+                }
             }
         });
         t.setDaemon(true);
         t.start();
     }
-    
+
     private void saveToFile() {
         try (PrintWriter writer = new PrintWriter(new FileWriter(AUTO_SAVE_FILE, true))) {
             writer.println(
-                "--- " +
-                "Auto-Save: " + 
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")) +
-                " ---"
-            );
+                    "--- " +
+                            "Auto-Save: " +
+                            LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")) +
+                            " ---");
             writer.println(text);
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        }
     }
-    
+
     public void type(String newText) {
         if (!newText.isEmpty()) {
             undoStack.push(text);
@@ -96,27 +97,30 @@ public class TextEditor {
             text = text.trim();
         }
     }
-    
+
     public void delete(int n) {
-        if (text.length() == 0 || n <= 0) return;
+        if (text.length() == 0 || n <= 0)
+            return;
         undoStack.push(text);
         redoStack = new SimpleStack();
         n = Math.min(n, text.length());
         text = text.substring(0, text.length() - n);
     }
-    
+
     public void undo() {
-        if (undoStack.isEmpty()) return;
+        if (undoStack.isEmpty())
+            return;
         redoStack.push(text);
         text = undoStack.pop();
     }
-    
+
     public void redo() {
-        if (redoStack.isEmpty()) return;
+        if (redoStack.isEmpty())
+            return;
         undoStack.push(text);
         text = redoStack.pop();
     }
-    
+
     public void save(String filename) {
         try (PrintWriter writer = new PrintWriter(filename)) {
             writer.print(text);
@@ -126,61 +130,54 @@ public class TextEditor {
             System.out.println("Error saving");
         }
     }
-    
+
     public void show() {
         System.out.println("Text: " + (text.isEmpty() ? "(empty)" : text.trim()));
     }
-    
+
     public void stop() {
         running = false;
     }
-    
+
     public static void main(String[] args) {
         TextEditor editor = new TextEditor();
         Scanner scanner = new Scanner(System.in);
-        
+
         System.out.println("Simple Text Editor");
         System.out.println("Commands: add <text>, del <num>, undo, redo, save <file>, show, exit");
-        
+
         while (true) {
             System.out.print("\n> ");
             String input = scanner.nextLine().trim();
-            
+
             if (input.startsWith("add ")) {
                 editor.type(input.substring(4));
                 editor.show();
-            }
-            else if (input.startsWith("del ")) {
+            } else if (input.startsWith("del ")) {
                 try {
                     editor.delete(Integer.parseInt(input.substring(4)));
                     editor.show();
                 } catch (Exception e) {
                     System.out.println("Enter a number");
                 }
-            }
-            else if (input.equals("undo")) {
+            } else if (input.equals("undo")) {
                 editor.undo();
                 editor.show();
-            }
-            else if (input.equals("redo")) {
+            } else if (input.equals("redo")) {
                 editor.redo();
                 editor.show();
-            }
-            else if (input.startsWith("save ")) {
+            } else if (input.startsWith("save ")) {
                 editor.save(input.substring(5));
-            }
-            else if (input.equals("show")) {
+            } else if (input.equals("show")) {
                 editor.show();
-            }
-            else if (input.equals("exit")) {
+            } else if (input.equals("exit")) {
                 editor.stop();
                 break;
-            }
-            else {
+            } else {
                 System.out.println("Unknown command");
             }
         }
-        
+
         scanner.close();
     }
 }
