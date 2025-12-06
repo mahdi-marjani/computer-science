@@ -31,13 +31,56 @@ class SimpleStack {
     }
 }
 
+class CircularQueue {
+    private String[] queue;
+    private int front;
+    private int rear;
+    private int size;
+    private final int capacity;
+
+    public CircularQueue(int capacity) {
+        this.capacity = capacity;
+        queue = new String[capacity];
+        front = 0;
+        rear = -1;
+        size = 0;
+    }
+
+    public void enqueue(String text) {
+        rear = (rear + 1) % capacity;
+        queue[rear] = text;
+        if (size < capacity) {
+            size++;
+        } else {
+            front = (front + 1) % capacity;
+        }
+    }
+
+    public String dequeue() {
+        if (isEmpty())
+            return null;
+        String text = queue[front];
+        front = (front + 1) % capacity;
+        size--;
+        return text;
+    }
+
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    public boolean isFull() {
+        return size == capacity;
+    }
+}
+
 public class TextEditor {
     private String text = "";
     private SimpleStack undoStack = new SimpleStack();
     private SimpleStack redoStack = new SimpleStack();
-    private String lastSavedText = "";
+    private CircularQueue autoSaveQueue = new CircularQueue(10);
     private boolean running = true;
-    private static final String AUTO_SAVE_FILE = "autosave.txt";
+    private static final String AUTO_SAVE_FILE = "autosave_recovery.txt";
 
     public TextEditor() {
         loadAutoSave();
@@ -49,12 +92,11 @@ public class TextEditor {
             if (Files.exists(Paths.get(AUTO_SAVE_FILE))) {
                 String content = new String(Files.readAllBytes(Paths.get(AUTO_SAVE_FILE)));
                 String[] lines = content.split("\n");
-                if (lines[lines.length - 1].startsWith("--- Auto-Save:")) {
+                if (lines[lines.length - 1].startsWith("--- Auto-Save Timestamp:")) {
                     text = "";
                 } else {
                     text = lines[lines.length - 1];
                 }
-                lastSavedText = text;
             }
         } catch (IOException e) {
         }
@@ -65,10 +107,7 @@ public class TextEditor {
             while (running) {
                 try {
                     Thread.sleep(10000);
-                    if (!text.equals(lastSavedText)) {
-                        saveToFile();
-                        lastSavedText = text;
-                    }
+                    autoSaveToFile();
                 } catch (InterruptedException e) {
                 }
             }
@@ -77,15 +116,20 @@ public class TextEditor {
         t.start();
     }
 
-    private void saveToFile() {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(AUTO_SAVE_FILE, true))) {
-            writer.println(
+    private void autoSaveToFile() {
+        if (!autoSaveQueue.isEmpty()) {
+            try (PrintWriter writer = new PrintWriter(new FileWriter(AUTO_SAVE_FILE, true))) {
+                String savedText = autoSaveQueue.dequeue();
+                writer.println(
                     "--- " +
-                            "Auto-Save: " +
-                            LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")) +
-                            " ---");
-            writer.println(text);
-        } catch (IOException e) {
+                    "Auto-Save Timestamp: " +
+                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) +
+                    " ---"
+                );
+                writer.println(savedText);
+            } catch (IOException e) {
+                System.out.println("Auto-save error");
+            }
         }
     }
 
@@ -95,6 +139,8 @@ public class TextEditor {
             redoStack = new SimpleStack();
             text += " " + newText;
             text = text.trim();
+
+            autoSaveQueue.enqueue(text);
         }
     }
 
@@ -105,6 +151,8 @@ public class TextEditor {
         redoStack = new SimpleStack();
         n = Math.min(n, text.length());
         text = text.substring(0, text.length() - n);
+
+        autoSaveQueue.enqueue(text);
     }
 
     public void undo() {
@@ -112,6 +160,8 @@ public class TextEditor {
             return;
         redoStack.push(text);
         text = undoStack.pop();
+
+        autoSaveQueue.enqueue(text);
     }
 
     public void redo() {
@@ -119,12 +169,13 @@ public class TextEditor {
             return;
         undoStack.push(text);
         text = redoStack.pop();
+
+        autoSaveQueue.enqueue(text);
     }
 
     public void save(String filename) {
         try (PrintWriter writer = new PrintWriter(filename)) {
             writer.print(text);
-            lastSavedText = text;
             System.out.println("Saved to: " + filename);
         } catch (IOException e) {
             System.out.println("Error saving");
