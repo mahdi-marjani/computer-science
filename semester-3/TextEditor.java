@@ -68,10 +68,6 @@ class CircularQueue {
     public boolean isEmpty() {
         return size == 0;
     }
-
-    public boolean isFull() {
-        return size == capacity;
-    }
 }
 
 public class TextEditor {
